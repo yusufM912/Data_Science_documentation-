@@ -1,0 +1,8 @@
+1. Memory Optimization & Out-of-Core Processing
+The Scenario: You are given a massive dataset (e.g., a 40 GB CSV file) and your local machine or container only has 16 GB of RAM.
+
+The Question: Write a Python solution using Pandas chunking or native generators
+to calculate the mean and standard deviation of a specific numeric column without loading the entire file into memory. 
+
+The code is:
+
