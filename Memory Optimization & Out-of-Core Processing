@@ -72,7 +72,9 @@ def stream_mean_std(file_path, target_column, chunk_size=100_000):
 
   return total_mean, std_dev
 
+The explaination:
 
-# --- Example Usage ---
-# mean, std = stream_mean_std('massive_transactions.csv', target_column='amount')
-# print(f"Global Mean: {mean}, Global Standard Deviation: {std}")
+Memory Complexity $O(1)$: Regardless of whether the file is 40 GB or 4 TB, 
+memory usage remains strictly bound to the size of a single chunk (e.g., 100,000 rows), 
+easily fitting inside standard RAM.Vectorization Per Chunk: 
+By leveraging clean_data.to_numpy() and NumPy's underlying C-optimized routines (np.mean and np.var), we avoid slow row-by-row Python iteration (for row in df).
