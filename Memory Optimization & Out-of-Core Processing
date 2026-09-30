@@ -6,3 +6,73 @@ to calculate the mean and standard deviation of a specific numeric column withou
 
 The code is:
 
+import numpy as np
+import pandas as pd
+
+
+def combine_stats(n_a, mean_a, m2_a, n_b, mean_b, m2_b):
+  """Merges two sets of statistical moments (count, mean, M2)
+
+  using Chan's parallel algorithm.
+  """
+  if n_a == 0:
+    return n_b, mean_b, m2_b
+  if n_b == 0:
+    return n_a, mean_a, m2_a
+
+  n = n_a + n_b
+  delta = mean_b - mean_a
+  mean = mean_a + delta * (n_b / n)
+  # M2 = M2_A + M2_B + delta^2 * (n_a * n_b / n)
+  m2 = m2_a + m2_b + (delta**2) * (n_a * n_b / n)
+
+  return n, mean, m2
+
+
+def compute_chunk_stats(series):
+  """Computes count, mean, and M2 for a single pandas Series, dropping NaNs."""
+  clean_data = series.dropna().to_numpy()
+  n = len(clean_data)
+  if n == 0:
+    return 0, 0.0, 0.0
+
+  mean = np.mean(clean_data)
+  # M2 is variance * n
+  m2 = np.var(clean_data, ddof=0) * n
+  return n, mean, m2
+
+
+def stream_mean_std(file_path, target_column, chunk_size=100_000):
+  """Streams a massive CSV file in chunks to compute global mean and std dev
+
+  with O(1) memory overhead.
+  """
+  total_n = 0
+  total_mean = 0.0
+  total_m2 = 0.0
+
+  # Read the CSV file iteratively in chunks
+  chunk_reader = pd.read_csv(file_path, chunksize=chunk_size, usecols=[target_column])
+
+  for chunk in chunk_reader:
+    # Compute stats for the current chunk vectorially using NumPy
+    n_chunk, mean_chunk, m2_chunk = compute_chunk_stats(chunk[target_column])
+
+    # Merge chunk stats into the global accumulator
+    total_n, total_mean, total_m2 = combine_stats(
+        total_n, total_mean, total_m2, n_chunk, mean_chunk, m2_chunk
+    )
+
+  if total_n == 0:
+    return None, None
+
+  # Calculate final variance and standard deviation (sample variance: ddof=1)
+  variance = total_m2 / (total_n - 1) if total_n > 1 else 0.0
+  std_dev = np.sqrt(variance)
+
+  return total_mean, std_dev
+
+
+# --- Example Usage ---
+# mean, std = stream_mean_std('massive_transactions.csv', target_column='amount')
+# print(f"Global Mean: {mean}, Global Standard Deviation: {std}")
